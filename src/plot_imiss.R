@@ -1,11 +1,22 @@
 #!/usr/bin/env Rscript
 
+args <- commandArgs(trailingOnly = TRUE)
+
 library(data.table)
 library(ggplot2)
 
-imiss_file <- "output/020_stats/pools/stats.imiss"
+imiss_file <- args[[1]]
 
 imiss <- fread(imiss_file)
 
-ggplot(imiss, aes(x = F_MISS)) +
+gp <- ggplot(imiss, aes(x = F_MISS)) +
     geom_histogram(binwidth = 0.01)
+
+ggsave(args[[2]],
+       gp,
+       device = cairo_pdf,
+       width = 10,
+       height = 7.5,
+       units = "in")
+
+sessionInfo()
