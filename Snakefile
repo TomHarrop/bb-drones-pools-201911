@@ -134,7 +134,7 @@ rule filter:
 # genotype
 checkpoint genotype:
     input:
-        csv = 'data/{run}.csv',
+        csv = 'data/{run}_indivonly.csv',
         ref = ref
     output:
         cutoffs = 'output/010_genotypes/{run}/040_stats/ldepth.mean_cutoffs.csv',
