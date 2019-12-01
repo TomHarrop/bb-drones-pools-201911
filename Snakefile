@@ -42,6 +42,9 @@ pools_csv = 'data/pools_indivonly.csv'
 # MAIN #
 ########
 
+pool_data = pandas.read_csv(pools_csv,
+                            index_col='sample')
+pool_samples = sorted(set(pool_data.index))
 
 
 #########
@@ -53,8 +56,9 @@ rule target:
     input:
         expand('output/020_filtered-genotypes/{run}/filtered.vcf.gz',
                run=['pools', 'drones']),
+        expand('output/040_phased-indivs/{indiv}.gtf',
+               indiv=pool_samples),
         'output/030_phased/phased_pools.vcf.gz',
-        'output/030_phased/phased_pools.gtf',
         'output/030_phased/phased_pools.bam.bai',
         'output/030_phased/phased_pools.gtf'
 
@@ -82,16 +86,17 @@ rule gtf_blocks:
         vcf = 'output/030_phased/phased_pools.vcf.gz',
         fai = 'output/010_genotypes/pools/015_ref/ref.fasta.fai'
     output:
-        gtf = 'output/030_phased/phased_pools.gtf',
-        stats = 'output/030_phased/phased_pools.txt',
+        gtf = 'output/040_phased-indivs/{indiv}.gtf',
+        stats = 'output/040_phased-indivs/{indiv}.txt',
     log:
-        'output/logs/gtf_blocks.log'
+        'output/logs/040_phased-indivs/{indiv}_gtf-blocks.log'
     singularity:
         whatshap
     shell:
         'whatshap stats '
         '--gtf {output.gtf} '
         '--chr-lengths <(cut -f1,2 {input.fai}) '
+        '--sample {wildcards.indiv} '
         '{input.vcf} '
         '> {output.stats} '
         '2> {log}'
