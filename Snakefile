@@ -53,7 +53,48 @@ rule target:
     input:
         expand('output/020_filtered-genotypes/{run}/filtered.vcf.gz',
                run=['pools', 'drones']),
-        'output/030_phased/phased_pools.vcf.gz'
+        'output/030_phased/phased_pools.vcf.gz',
+        'output/030_phased/phased_pools.gtf',
+        'output/030_phased/phased_pools.bam.bai',
+        'output/030_phased/phased_pools.gtf'
+
+rule phase_reads:
+    input:
+        vcf = 'output/030_phased/phased_pools.vcf.gz',
+        ref = 'output/010_genotypes/pools/015_ref/ref.fasta',
+        bam = 'output/010_genotypes/pools/merged.bam'
+    output:
+        bam = 'output/030_phased/phased_pools.bam'
+    log:
+        'output/logs/phase_reads.log'
+    singularity:
+        whatshap
+    shell:
+        'whatshap haplotag '
+        '-o {output.bam} '
+        '--reference {input.ref} '
+        '{input.vcf} '
+        '{input.bam} '
+        '&> {log}'
+
+rule gtf_blocks:
+    input:
+        vcf = 'output/030_phased/phased_pools.vcf.gz',
+        fai = 'output/010_genotypes/pools/015_ref/ref.fasta.fai'
+    output:
+        gtf = 'output/030_phased/phased_pools.gtf',
+        stats = 'output/030_phased/phased_pools.txt',
+    log:
+        'output/logs/gtf_blocks.log'
+    singularity:
+        whatshap
+    shell:
+        'whatshap stats '
+        '--gtf {output.gtf} '
+        '--chr-lengths <(cut -f1,2 {input.fai}) '
+        '{input.vcf} '
+        '> {output.stats} '
+        '2> {log}'
 
 
 rule phase_pools:
