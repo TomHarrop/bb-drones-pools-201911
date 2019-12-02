@@ -23,6 +23,7 @@ def get_max_cutoff(wildcards):
 # GLOBALS #
 ###########
 
+bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
 honeybee_genotype_pipeline = (
     'shub://TomHarrop/'
     'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.3'
@@ -42,10 +43,19 @@ pools_csv = 'data/pools_indivonly.csv'
 # MAIN #
 ########
 
+# map barcodes to names
 pool_data = pandas.read_csv(pools_csv,
                             index_col='sample')
 pool_samples = sorted(set(pool_data.index))
+drone_data = pandas.read_csv(drones_csv,
+                             index_col='sample')
+drone_samples = sorted(set(drone_data.index))
 
+# generate output files for demultiplexing
+sample_data = {'drones': drone_data,
+               'pools': pool_data}
+
+sample_df = pandas.concat(sample_data)
 
 #########
 # RULES #
@@ -59,8 +69,7 @@ rule target:
         expand('output/040_phased-indivs/{indiv}.gtf',
                indiv=pool_samples),
         'output/030_phased/phased_pools.vcf.gz',
-        'output/030_phased/phased_pools.bam.bai',
-        'output/030_phased/phased_pools.gtf'
+        'output/030_phased/phased_pools.bam.bai'
 
 rule phase_reads:
     input:
@@ -79,7 +88,8 @@ rule phase_reads:
         '--reference {input.ref} '
         '{input.vcf} '
         '{input.bam} '
-        '&> {log}'
+        '&> {log} '
+        '|| true '  # don't know why it's failing but i need to see the output
 
 rule gtf_blocks:
     input:
@@ -145,7 +155,6 @@ rule add_phase_set:
         ' {output.tmp} '
         ' > {output.vcf} '
 
-
 rule filter:
     input:
         cutoffs = 'output/010_genotypes/{run}/040_stats/ldepth.mean_cutoffs.csv',
@@ -208,7 +217,6 @@ checkpoint genotype:
         '--restart_times 1 '
         '&>> {log}'
 
-
 # generic bamfile subset
 rule subset_bamfile:
     input:
@@ -230,7 +238,6 @@ rule subset_bamfile:
         '{input} '
         '> {output} '
         '2> {log}'
-
 
 # generic bamfile index
 rule index_bamfile:
@@ -265,3 +272,55 @@ rule index_vcf:
         '; '
         'tabix -p vcf {output.gz} 2>> {log}'
 
+
+# CODE FOR DEMULTIPLEXING Undetermined FILES
+# NOT ACTUALLY USEFUL
+def match_failed_reads(wildcards):
+    my_bc = sample_df.loc[(wildcards.run, wildcards.indiv), 'barcode']
+    r1_good = sample_df.loc[(wildcards.run, wildcards.indiv), 'r1_path']
+    r2_good = sample_df.loc[(wildcards.run, wildcards.indiv), 'r2_path']
+    return {'r1': r1_good,
+            'r2': r2_good,
+            'r1_failed': f'output/000_tmp/reads/{my_bc}_r1.fastq.gz',
+            'r2_failed': f'output/000_tmp/reads/{my_bc}_r2.fastq.gz'}
+
+rule rename_target:
+    input:
+        expand('output/000_tmp/drones_{indiv}.fastq.gz',
+               indiv=drone_samples)
+
+rule rename_tmp:
+    input:
+        unpack(match_failed_reads)
+    output:
+        'output/000_tmp/{run}_{indiv}.fastq.gz'
+    shell:
+        'cat {input.r1} {input.r1_failed} > {output} ; '
+        'cat {input.r2} {input.r2_failed} > {output} ; '
+
+rule demultiplex:
+    input:
+        r1 = 'data/reads/failed_demultiplex/Undetermined_S0_L002_R1_001.fastq.gz',
+        r2 = 'data/reads/failed_demultiplex/Undetermined_S0_L002_R2_001.fastq.gz'
+    output:
+        expand('output/000_tmp/reads/{barcode}_r{r}.fastq.gz',
+               barcode=sorted(set(sample_df['barcode'])),
+               r=['1', '2'])
+    log:
+        'output/logs/demultiplex.log'
+    params:
+        names = ','.join(sorted(set(sample_df['barcode']))),
+        out = 'output/000_tmp/reads/%_r1.fastq.gz',
+        out2 = 'output/000_tmp/reads/%_r2.fastq.gz'
+    singularity:
+        bbmap
+    shell:
+        'demuxbyname.sh '
+        'in={input.r1} '
+        'in2={input.r2} '
+        'out={params.out} '
+        'out2={params.out2} '
+        'names={params.names} '
+        'prefixmode=f '
+        '-Xmx100g '
+        '2> {log}'
