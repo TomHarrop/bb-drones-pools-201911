@@ -4,6 +4,13 @@ import multiprocessing
 import pandas
 
 
+def find_combined_reads(wildcards):
+    my_samples = all_samples[wildcards.run]
+    return expand(f'output/000_tmp/reads/{{sample}}_{wildcards.run}_R{{r}}.fq.gz',
+                  sample=my_samples,
+                  r=[1, 2])
+
+
 def get_min_cutoff(wildcards):
     cutoff_file = checkpoints.genotype.get(**wildcards).output['cutoffs']
     cutoffs = pandas.read_csv(cutoff_file,
@@ -50,6 +57,8 @@ pool_samples = sorted(set(pool_data.index))
 drone_data = pandas.read_csv(drones_csv,
                              index_col='sample')
 drone_samples = sorted(set(drone_data.index))
+all_samples = {'drones': drone_samples,
+               'pools': pool_samples}
 
 # generate output files for demultiplexing
 sample_data = {'drones': drone_data,
@@ -190,7 +199,8 @@ rule filter:
 checkpoint genotype:
     input:
         csv = 'data/{run}_indivonly.csv',
-        ref = ref
+        ref = ref,
+        reads = find_combined_reads
     output:
         cutoffs = 'output/010_genotypes/{run}/040_stats/ldepth.mean_cutoffs.csv',
         vcf = 'output/010_genotypes/{run}/calls.vcf.gz',
@@ -216,6 +226,26 @@ checkpoint genotype:
         '--threads {threads} '
         '--restart_times 1 '
         '&>> {log}'
+
+
+# combine reads for indivs
+rule combine_reads:
+    input:
+        r1_1 = 'data/reads/{sample}_{run}/{sample}_{run}_R1.fq.gz',
+        r1_2 = 'data/reads/{sample}_{run}/{sample}_{run}_R2.fq.gz',
+        r2_1 = 'data/reads2/{sample}_{run}/{sample}_{run}_R1.fq.gz',
+        r2_2 = 'data/reads2/{sample}_{run}/{sample}_{run}_R2.fq.gz'
+    output:
+        r1 = 'output/000_tmp/reads/{sample}_{run}_R1.fq.gz',
+        r2 = 'output/000_tmp/reads/{sample}_{run}_R2.fq.gz'
+    singularity:
+        samtools
+    shell:
+        'cat {input.r1_1} {input.r2_1} > {output.r1} & '
+        'cat {input.r1_2} {input.r2_2} > {output.r2} & '
+        'wait'
+
+
 
 # generic bamfile subset
 rule subset_bamfile:

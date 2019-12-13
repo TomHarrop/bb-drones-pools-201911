@@ -55,7 +55,8 @@ merged_gt[is.na(gt_match), table(GT_po, GT_dr, useNA = "always")]
 merged_gt[gt_match == "drone-var_pool-na"]
 
 merged_gt[gt_match == "match", table(GT_dr, GT_po, useNA = "always")]
-
+# kept sites
+merged_gt[gt_match == "match", unique(locus)]
 
 
 
