@@ -4,13 +4,6 @@ import multiprocessing
 import pandas
 
 
-def find_combined_reads(wildcards):
-    my_samples = all_samples[wildcards.run]
-    return expand(f'output/000_tmp/reads/{{sample}}_{wildcards.run}_R{{r}}.fq.gz',
-                  sample=my_samples,
-                  r=[1, 2])
-
-
 def get_min_cutoff(wildcards):
     cutoff_file = checkpoints.genotype.get(**wildcards).output['cutoffs']
     cutoffs = pandas.read_csv(cutoff_file,
@@ -33,8 +26,7 @@ def get_max_cutoff(wildcards):
 bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
 honeybee_genotype_pipeline = (
     'shub://TomHarrop/'
-    'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.3'
-    '@e7e37748bde42ab8d6ad8dffecd5ca008089276c')
+    'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.6')
 r = ('shub://TomHarrop/r-containers:r_3.6.1'
      '@e1eb426cd153fd0669bc24508673228d2f25dd76')
 samtools = 'shub://TomHarrop/singularity-containers:samtools_1.9'       # fixme
@@ -43,28 +35,38 @@ vcftools = ('shub://TomHarrop/variant-utils:vcftools_0.1.16'
 whatshap = 'shub://TomHarrop/variant-utils:whatshap_0.18'
 
 ref = 'data/GCF_003254395.2_Amel_HAv3.1_genomic.fna'
-drones_csv = 'data/drones_indivonly.csv'
-pools_csv = 'data/pools_indivonly.csv'
+
+
+sample_info = 'data/combined_sampleinfo.csv'
+cnv_map = 'data/cnv_map.txt'
 
 ########
 # MAIN #
 ########
 
-# map barcodes to names
-pool_data = pandas.read_csv(pools_csv,
+# read sample data
+sample_df = pandas.read_csv(sample_info,
                             index_col='sample')
-pool_samples = sorted(set(pool_data.index))
-drone_data = pandas.read_csv(drones_csv,
-                             index_col='sample')
-drone_samples = sorted(set(drone_data.index))
-all_samples = {'drones': drone_samples,
-               'pools': pool_samples}
 
-# generate output files for demultiplexing
-sample_data = {'drones': drone_data,
-               'pools': pool_data}
+all_samples = sorted(set(sample_df.index))
+pool_samples = [x for x in all_samples if x.endswith('_pool')]
+drone_samples = [x for x in all_samples if x.endswith('_drone')]
 
-sample_df = pandas.concat(sample_data)
+# map barcodes to names
+# pool_data = pandas.read_csv(pools_csv,
+#                             index_col='sample')
+# pool_samples = sorted(set(pool_data.index))
+# drone_data = pandas.read_csv(drones_csv,
+#                              index_col='sample')
+# drone_samples = sorted(set(drone_data.index))
+# all_samples = {'drones': drone_samples,
+#                'pools': pool_samples}
+
+# # generate output files for demultiplexing
+# sample_data = {'drones': drone_data,
+#                'pools': pool_data}
+
+# sample_df = pandas.concat(sample_data)
 
 #########
 # RULES #
@@ -73,103 +75,98 @@ sample_df = pandas.concat(sample_data)
 # rules
 rule target:
     input:
-        expand('output/020_filtered-genotypes/{run}/filtered.vcf.gz',
-               run=['pools', 'drones']),
-        expand('output/040_phased-indivs/{indiv}.gtf',
-               indiv=pool_samples),
-        'output/030_phased/phased_pools.vcf.gz',
-        'output/030_phased/phased_pools.bam.bai'
+        'output/020_filtered-genotypes/filtered.vcf.gz',
 
-rule phase_reads:
-    input:
-        vcf = 'output/030_phased/phased_pools.vcf.gz',
-        ref = 'output/010_genotypes/pools/015_ref/ref.fasta',
-        bam = 'output/010_genotypes/pools/merged.bam'
-    output:
-        bam = 'output/030_phased/phased_pools.bam'
-    log:
-        'output/logs/phase_reads.log'
-    singularity:
-        whatshap
-    shell:
-        'whatshap haplotag '
-        '-o {output.bam} '
-        '--reference {input.ref} '
-        '{input.vcf} '
-        '{input.bam} '
-        '&> {log} '
-        '|| true '  # don't know why it's failing but i need to see the output
+# rule phase_reads:
+#     input:
+#         vcf = 'output/030_phased/phased_pools.vcf.gz',
+#         ref = 'output/010_genotypes/pools/015_ref/ref.fasta',
+#         bam = 'output/010_genotypes/pools/merged.bam'
+#     output:
+#         bam = 'output/030_phased/phased_pools.bam'
+#     log:
+#         'output/logs/phase_reads.log'
+#     singularity:
+#         whatshap
+#     shell:
+#         'whatshap haplotag '
+#         '-o {output.bam} '
+#         '--reference {input.ref} '
+#         '{input.vcf} '
+#         '{input.bam} '
+#         '&> {log} '
+#         '|| true '  # don't know why it's failing but i need to see the output
 
-rule gtf_blocks:
-    input:
-        vcf = 'output/030_phased/phased_pools.vcf.gz',
-        fai = 'output/010_genotypes/pools/015_ref/ref.fasta.fai'
-    output:
-        gtf = 'output/040_phased-indivs/{indiv}.gtf',
-        stats = 'output/040_phased-indivs/{indiv}.txt',
-    log:
-        'output/logs/040_phased-indivs/{indiv}_gtf-blocks.log'
-    singularity:
-        whatshap
-    shell:
-        'whatshap stats '
-        '--gtf {output.gtf} '
-        '--chr-lengths <(cut -f1,2 {input.fai}) '
-        '--sample {wildcards.indiv} '
-        '{input.vcf} '
-        '> {output.stats} '
-        '2> {log}'
+# rule gtf_blocks:
+#     input:
+#         vcf = 'output/030_phased/phased_pools.vcf.gz',
+#         fai = 'output/010_genotypes/pools/015_ref/ref.fasta.fai'
+#     output:
+#         gtf = 'output/040_phased-indivs/{indiv}.gtf',
+#         stats = 'output/040_phased-indivs/{indiv}.txt',
+#     log:
+#         'output/logs/040_phased-indivs/{indiv}_gtf-blocks.log'
+#     singularity:
+#         whatshap
+#     shell:
+#         'whatshap stats '
+#         '--gtf {output.gtf} '
+#         '--chr-lengths <(cut -f1,2 {input.fai}) '
+#         '--sample {wildcards.indiv} '
+#         '{input.vcf} '
+#         '> {output.stats} '
+#         '2> {log}'
 
 
-rule phase_pools:
-    input:
-        vcf = 'output/020_filtered-genotypes/pools/filtered.vcf.gz',
-        bam = 'output/010_genotypes/pools/merged.bam',
-        ref = 'output/010_genotypes/pools/015_ref/ref.fasta',
-        fai = 'output/010_genotypes/pools/015_ref/ref.fasta.fai',
-        drone_vcf = 'output/030_phased/phased_drones.vcf.gz'
-    output:
-        'output/030_phased/phased_pools.vcf'
-    log:
-        'output/logs/phase_pools.log'
-    singularity:
-        whatshap
-    shell:
-        'whatshap phase '
-        '--reference {input.ref} '
-        '-o {output} '
-        '--indels '
-        '{input.vcf} '
-        '{input.bam} '
-        '{input.drone_vcf} ' # add phased drone vcf here
-        '&> {log}'
+# rule phase_pools:
+#     input:
+#         vcf = 'output/020_filtered-genotypes/pools/filtered.vcf.gz',
+#         bam = 'output/010_genotypes/pools/merged.bam',
+#         ref = 'output/010_genotypes/pools/015_ref/ref.fasta',
+#         fai = 'output/010_genotypes/pools/015_ref/ref.fasta.fai',
+#         drone_vcf = 'output/030_phased/phased_drones.vcf.gz'
+#     output:
+#         'output/030_phased/phased_pools.vcf'
+#     log:
+#         'output/logs/phase_pools.log'
+#     singularity:
+#         whatshap
+#     shell:
+#         'whatshap phase '
+#         '--reference {input.ref} '
+#         '-o {output} '
+#         '--indels '
+#         '{input.vcf} '
+#         '{input.bam} '
+#         '{input.drone_vcf} ' # add phased drone vcf here
+#         '&> {log}'
 
-# manually add a dummy phase set block to all drone calls
-rule add_phase_set:
-    input:
-        vcf = 'output/020_filtered-genotypes/drones/filtered.vcf'
-    output:
-        vcf = 'output/030_phased/phased_drones.vcf',
-        tmp = temp('output/030_phased/phased_drones_noheader.vcf')
-    log:
-        'output/logs/add_phase_set.log'
-    singularity:
-        r
-    shell:
-        'Rscript src/manual_vcf_parse.R {input.vcf} {output.tmp} '
-        '&> {log} ; '
-        'cat <(grep "^##" {input.vcf}) '
-        '<(echo \'##FORMAT=<ID=PS,Number=1,Type=Integer,Description="Phase set">\') '
-        '<(grep "^#[^#]" {input.vcf}) '
-        ' {output.tmp} '
-        ' > {output.vcf} '
+# # manually add a dummy phase set block to all drone calls
+# rule add_phase_set:
+#     input:
+#         vcf = 'output/020_filtered-genotypes/drones/filtered.vcf'
+#     output:
+#         vcf = 'output/030_phased/phased_drones.vcf',
+#         tmp = temp('output/030_phased/phased_drones_noheader.vcf')
+#     log:
+#         'output/logs/add_phase_set.log'
+#     singularity:
+#         r
+#     shell:
+#         'Rscript src/manual_vcf_parse.R {input.vcf} {output.tmp} '
+#         '&> {log} ; '
+#         'cat <(grep "^##" {input.vcf}) '
+#         '<(echo \'##FORMAT=<ID=PS,Number=1,Type=Integer,Description="Phase set">\') '
+#         '<(grep "^#[^#]" {input.vcf}) '
+#         ' {output.tmp} '
+#         ' > {output.vcf} '
 
 rule filter:
     input:
-        cutoffs = 'output/010_genotypes/{run}/040_stats/ldepth.mean_cutoffs.csv',
-        vcf = 'output/010_genotypes/{run}/calls.vcf.gz'
+        cutoffs = 'output/010_genotypes/040_stats/ldepth.mean_cutoffs.csv',
+        vcf = 'output/010_genotypes/calls.vcf.gz'
     output:
-        'output/020_filtered-genotypes/{run}/filtered.vcf'
+        'output/020_filtered-genotypes/filtered.vcf'
     params:
         min_depth = get_min_cutoff,
         max_depth = get_max_cutoff,
@@ -177,7 +174,7 @@ rule filter:
         max_missing = 0.9,
         qual = 30
     log:
-        'output/logs/filter_{run}.log'
+        'output/logs/filter.log'
     singularity:
         vcftools
     shell:
@@ -198,21 +195,22 @@ rule filter:
 # genotype
 checkpoint genotype:
     input:
-        csv = 'data/{run}_indivonly.csv',
+        csv = sample_info,
         ref = ref,
-        reads = find_combined_reads
+        cnv_map = cnv_map,
+        reads = expand('output/000_tmp/reads/{sample}_R{r}.fq.gz',
+                       sample=all_samples,
+                       r=[1, 2])
     output:
-        cutoffs = 'output/010_genotypes/{run}/040_stats/ldepth.mean_cutoffs.csv',
-        vcf = 'output/010_genotypes/{run}/calls.vcf.gz',
-        bam = 'output/010_genotypes/{run}/merged.bam',
-        ref = 'output/010_genotypes/{run}/015_ref/ref.fasta',
-        fai = 'output/010_genotypes/{run}/015_ref/ref.fasta.fai'
+        cutoffs = 'output/010_genotypes/040_stats/ldepth.mean_cutoffs.csv',
+        vcf = 'output/010_genotypes/calls.vcf.gz',
+        bam = 'output/010_genotypes/merged.bam',
+        ref = 'output/010_genotypes/015_ref/ref.fasta',
+        fai = 'output/010_genotypes/015_ref/ref.fasta.fai'
     params:
-        wd = 'output/010_genotypes/{run}',
-        ploidy = lambda wildcards:
-            '1' if wildcards.run == 'drones' else '2'
+        wd = 'output/010_genotypes',
     log:
-        'output/logs/genotype_{run}.log'
+        'output/logs/genotype.log'
     threads:
         multiprocessing.cpu_count()
     singularity:
@@ -222,8 +220,9 @@ checkpoint genotype:
         '--ref {input.ref} '
         '--samples_csv {input.csv} '
         '--outdir {params.wd} '
-        '--ploidy {params.ploidy} '
+        '--cnv_map {input.cnv_map} '
         '--threads {threads} '
+        '--csd '
         '--restart_times 1 '
         '&>> {log}'
 
@@ -231,13 +230,13 @@ checkpoint genotype:
 # combine reads for indivs
 rule combine_reads:
     input:
-        r1_1 = 'data/reads/{sample}_{run}/{sample}_{run}_R1.fq.gz',
-        r1_2 = 'data/reads/{sample}_{run}/{sample}_{run}_R2.fq.gz',
-        r2_1 = 'data/reads2/{sample}_{run}/{sample}_{run}_R1.fq.gz',
-        r2_2 = 'data/reads2/{sample}_{run}/{sample}_{run}_R2.fq.gz'
+        r1_1 = 'data/reads/{sample}s/{sample}s_R1.fq.gz',
+        r1_2 = 'data/reads/{sample}s/{sample}s_R2.fq.gz',
+        r2_1 = 'data/reads2/{sample}s/{sample}s_R1.fq.gz',
+        r2_2 = 'data/reads2/{sample}s/{sample}s_R2.fq.gz'
     output:
-        r1 = 'output/000_tmp/reads/{sample}_{run}_R1.fq.gz',
-        r2 = 'output/000_tmp/reads/{sample}_{run}_R2.fq.gz'
+        r1 = temp('output/000_tmp/reads/{sample}_R1.fq.gz'),
+        r2 = temp('output/000_tmp/reads/{sample}_R2.fq.gz')
     singularity:
         samtools
     shell:
