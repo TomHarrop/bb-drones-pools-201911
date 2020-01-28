@@ -2,7 +2,8 @@ library(SNPRelate)
 library(data.table)
 library(ggplot2)
 
-vcf_file <- "output/020_filtered-genotypes/pools/filtered.vcf.gz"
+vcf_file <- "output/020_filtered-genotypes/filtered.vcf.gz"
+# vcf_file <- "test/filtered.vcf.gz"
 gds_file <- tempfile(fileext = ".gds")
 
 
@@ -144,10 +145,12 @@ varprop[, varpct := varprop * 100]
 eig_long <- melt(eig, id.vars = "sample")
 eig_pd <- merge(eig_long, varprop, all.x = TRUE, all.y = FALSE)
 eig_pd[, label := paste0(variable, " (", round(varpct, 1), "%)")]
-
+eig_pd[, sample_type:= unlist(strsplit(sample, "_"))[[2]], by = sample]
+setorder(eig_pd, sample_type, sample)
+eig_pd[, sample := factor(sample, levels = unique(sample))]
 
 ggplot(eig_pd[variable %in% paste0("EV", 1:10)],
-       aes(x = sample, y = value)) +
+       aes(x = sample, y = value, colour = sample_type)) +
     facet_wrap(~label) +
     geom_point()
 
