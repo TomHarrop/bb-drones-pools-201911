@@ -26,7 +26,7 @@ def get_max_cutoff(wildcards):
 bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.50b'
 honeybee_genotype_pipeline = (
     'shub://TomHarrop/'
-    'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.6')
+    'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.7')
 r = ('shub://TomHarrop/r-containers:r_3.6.1'
      '@e1eb426cd153fd0669bc24508673228d2f25dd76')
 samtools = 'shub://TomHarrop/singularity-containers:samtools_1.9'       # fixme

@@ -11,7 +11,7 @@ snpgdsVCF2GDS(vcf_file, gds_file, method = "copy.num.of.ref" )
 # snpgdsVCF2GDS(vcf_file, gds_file, method = "biallelic.only" )
 gds_data <- snpgdsOpen(gds_file)
 
-# prune for LD and exlude non-autosomes
+prune for LD and exlude non-autosomes
 pruned <- snpgdsLDpruning(gds_data,
                 autosome.only = FALSE, ld.threshold = 0.2)
 keep_snps <- unlist(pruned[startsWith(names(pruned), "chrNC")])
