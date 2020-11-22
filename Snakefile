@@ -29,7 +29,7 @@ honeybee_genotype_pipeline = (
     'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.6')
 r = ('shub://TomHarrop/r-containers:r_3.6.1'
      '@e1eb426cd153fd0669bc24508673228d2f25dd76')
-samtools = 'shub://TomHarrop/singularity-containers:samtools_1.9'       # fixme
+samtools = 'shub://TomHarrop/align-utils:samtools_1.10'
 vcftools = ('shub://TomHarrop/variant-utils:vcftools_0.1.16'
             '@d64cc5a37951760be575c43024c66e69b2563166')
 whatshap = 'shub://TomHarrop/variant-utils:whatshap_0.18'
@@ -161,34 +161,45 @@ rule target:
 #         ' {output.tmp} '
 #         ' > {output.vcf} '
 
+
+rule split_target:
+    input:
+        expand('output/020_filtered-genotypes/filtered.{set}.vcf.gz',
+               set=['pools', 'drones'])
+
+rule split_vcf:
+    input:  
+        vcf = 'output/020_filtered-genotypes/filtered.vcf.gz',
+        cnv_map = cnv_map,
+    output:
+        'output/020_filtered-genotypes/filtered.{set}.vcf'
+    params:
+        query = lambda wildcards: f'_{wildcards.set}'
+    shell:
+        'bcftools view '
+        '-S <( grep -v "{params.query}" {input.cnv_map}  | cut -f1 ) '
+        '{input.vcf} '
+        '> {output} '
+        '2> {log}'
+
 rule filter:
     input:
-        cutoffs = 'output/010_genotypes/040_stats/ldepth.mean_cutoffs.csv',
         vcf = 'output/010_genotypes/calls.vcf.gz'
     output:
-        'output/020_filtered-genotypes/filtered.vcf'
+        temp('output/020_filtered-genotypes/filtered.vcf')
     params:
-        min_depth = get_min_cutoff,
-        max_depth = get_max_cutoff,
-        maf = 0.1,
-        max_missing = 0.9,
-        qual = 30
+        min_maf = 0.05,
+        f_missing = 0.2
     log:
         'output/logs/filter.log'
     singularity:
-        vcftools
+        samtools
     shell:
-        'vcftools '
-        '--gzvcf {input.vcf} '
-        '--maf {params.maf} '
-        '--max-missing {params.max_missing} '
-        '--minQ {params.qual} '
-        '--min-meanDP {params.min_depth} '
-        '--max-meanDP {params.max_depth} '
-        '--minDP {params.min_depth} '
-        '--maxDP {params.max_depth} '
-        '--recode '
-        '--stdout '
+        'bcftools view '
+        '-m2 -M2 -v snps '  # biallelic snps only
+        '--min-af {params.min_maf}:nonmajor '
+        '--exclude "F_MISSING>{params.f_missing}" '
+        '{input.vcf} '
         '> {output} '
         '2> {log}'
 
@@ -292,8 +303,8 @@ rule index_vcf:
         tbi = 'output/{folder}/{file}.vcf.gz.tbi'
     log:
         'output/logs/{folder}/{file}_index-vcf.log'
-    wildcard_constraints:
-        file = 'filtered|phased_drones|phased_pools'
+    # wildcard_constraints:
+    #     file = 'filtered|phased_drones|phased_pools'
     singularity:
         samtools
     shell:
@@ -353,3 +364,5 @@ rule demultiplex:
         'prefixmode=f '
         '-Xmx100g '
         '2> {log}'
+
+
