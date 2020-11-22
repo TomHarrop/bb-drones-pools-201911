@@ -173,6 +173,8 @@ rule split_vcf:
         cnv_map = cnv_map,
     output:
         'output/020_filtered-genotypes/filtered.{set}.vcf'
+    log:
+        'output/logs/split_vcf.{set}.log'
     params:
         query = lambda wildcards: f'_{wildcards.set}'
     container:
