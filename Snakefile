@@ -23,10 +23,10 @@ def get_max_cutoff(wildcards):
 # GLOBALS #
 ###########
 
-bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
+bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.50b'
 honeybee_genotype_pipeline = (
     'shub://TomHarrop/'
-    'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.6')
+    'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.7')
 r = ('shub://TomHarrop/r-containers:r_3.6.1'
      '@e1eb426cd153fd0669bc24508673228d2f25dd76')
 samtools = 'shub://TomHarrop/align-utils:samtools_1.10'
@@ -205,6 +205,29 @@ rule filter:
         '> {output} '
         '2> {log}'
 
+
+# calculate insert size, THIS SHOULD HAPPEN IN PIPELINE PER_LIBRARY
+rule calculate_insert_size:
+    input:
+        bam = 'output/010_genotypes/merged.bam',
+        fai = 'output/010_genotypes/015_ref/ref.fasta.fai'
+    output:
+        'output/030_stats/merged_insert_size.txt'
+    log:
+        'output/logs/calculate_insert_size.log'
+    singularity:
+        bbmap
+    shell:
+        'samtools view -h '
+        '{input.bam} '
+        '$( grep "^NC" {input.fai} | \
+            cut -f1 | tr \'\n\' \' \' ) '
+        '| reformat.sh '
+        'in=stdin.sam '
+        'out=/dev/null '
+        'ihist={output} '
+        '2> {log}'
+
 # genotype
 checkpoint genotype:
     input:
@@ -256,8 +279,6 @@ rule combine_reads:
         'cat {input.r1_1} {input.r2_1} > {output.r1} & '
         'cat {input.r1_2} {input.r2_2} > {output.r2} & '
         'wait'
-
-
 
 # generic bamfile subset
 rule subset_bamfile:

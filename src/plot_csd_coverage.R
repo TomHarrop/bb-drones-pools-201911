@@ -91,7 +91,7 @@ csd_grt <- GeneRegionTrack(txdb,
 displayPars(csd_grt) <- grt_scheme
 
 # alignment track (too big, have to subset)
-at1 <- AlignmentsTrack(range = "output/bam_subsets/010_genotypes/pools/merged.bam",
+at1 <- AlignmentsTrack(range = "output/010_genotypes/020_map/BB02_pool.bam",
                        referenceSequence = st,
                        isPaired = TRUE,
                        name = "All individuals",
@@ -101,7 +101,10 @@ at1 <- AlignmentsTrack(range = "output/bam_subsets/010_genotypes/pools/merged.ba
 displayPars(at1) <- aln_scheme
 
 # join tracks and highlight hypervariable region
-ht1 <- HighlightTrack(trackList = list(at1, csd_grt, gat),
+ht1 <- HighlightTrack(trackList = list(
+    at1,
+    csd_grt,
+    gat),
                       start = 11771976,
                       end = 11772216,
                       chromosome = csd_chr,
