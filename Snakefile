@@ -170,23 +170,34 @@ rule split_target:
 rule reheader_vcf:
     input:
         vcf = 'output/020_filtered-genotypes/{set}.filtered.vcf.gz',
-        cnv_map = cnv_map,
+        headers = 'output/020_filtered-genotypes/{set}.headers.txt'
     output:
         'output/020_filtered-genotypes/{set}.renamed.vcf'
     log:
         'output/logs/reheader_vcf.{set}.log'
+    container:
+        samtools
+    shell:
+        'bcftools reheader '
+        '-s {input.headers} '
+        '{input.vcf} '
+        '>{output} '
+        '@>{log}'
+
+rule header_file:
+    input:
+        cnv_map
+    output:
+        'output/020_filtered-genotypes/{set}.headers.txt'
     params:
         query = lambda wildcards: f'_{wildcards.set}'
     container:
         samtools
     shell:
-        'bcftools reheader '
-        '-s <( grep "{params.query}" {input.cnv_map} '
+        'grep "{params.query}" {input} '
         '| cut -f1 '
-        '| awk -F "_" \'{{print $1"_"$2" "$1}}\' ) '
-        '{input.vcf} '
-        '>{output} '
-        '@>{log}'
+        '| awk -F "_" \'{{print $1"_"$2" "$1}}\' '
+        '> {output}'
 
 rule split_vcf:
     input:
