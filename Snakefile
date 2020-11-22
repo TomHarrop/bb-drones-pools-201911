@@ -175,6 +175,8 @@ rule split_vcf:
         'output/020_filtered-genotypes/filtered.{set}.vcf'
     params:
         query = lambda wildcards: f'_{wildcards.set}'
+    container:
+        samtools
     shell:
         'bcftools view '
         '-S <( grep -v "{params.query}" {input.cnv_map}  | cut -f1 ) '
