@@ -183,7 +183,7 @@ rule reheader_vcf:
         'bcftools reheader '
         '-s <( grep "{params.query}" {input.cnv_map} '
         '| cut -f1 '
-        '| awk -F "_" \'{{print $1"_"$2"\\t"$1}}\' ) '
+        '| awk -F "_" \'{{print $1"_"$2" "$1}}\' ) '
         '{input.vcf} '
         '>{output} '
         '@>{log}'
