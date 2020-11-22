@@ -165,10 +165,10 @@ rule target:
 rule split_target:
     input:
         expand('output/020_filtered-genotypes/filtered.{set}.vcf.gz',
-               set=['pools', 'drones'])
+               set=['pools', 'drone'])
 
 rule split_vcf:
-    input:  
+    input:
         vcf = 'output/020_filtered-genotypes/filtered.vcf.gz',
         cnv_map = cnv_map,
     output:
@@ -179,7 +179,7 @@ rule split_vcf:
         samtools
     shell:
         'bcftools view '
-        '-S <( grep -v "{params.query}" {input.cnv_map}  | cut -f1 ) '
+        '-S <( grep "{params.query}" {input.cnv_map}  | cut -f1 ) '
         '{input.vcf} '
         '> {output} '
         '2> {log}'
