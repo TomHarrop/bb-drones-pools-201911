@@ -165,7 +165,7 @@ rule target:
 rule split_target:
     input:
         expand('output/020_filtered-genotypes/{set}.renamed.vcf.gz',
-               set=['pools', 'drone'])
+               set=['pool', 'drone'])
 
 rule reheader_vcf:
     input:
