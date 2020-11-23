@@ -35,7 +35,7 @@ vcftools = ('shub://TomHarrop/variant-utils:vcftools_0.1.16'
 whatshap = 'shub://TomHarrop/variant-utils:whatshap_0.18'
 
 ref = 'data/GCF_003254395.2_Amel_HAv3.1_genomic.fna'
-
+fai = f'{ref}.fai'
 
 sample_info = 'data/combined_sampleinfo.csv'
 cnv_map = 'data/cnv_map.txt'
@@ -51,6 +51,11 @@ sample_df = pandas.read_csv(sample_info,
 all_samples = sorted(set(sample_df.index))
 pool_samples = [x for x in all_samples if x.endswith('_pool')]
 drone_samples = [x for x in all_samples if x.endswith('_drone')]
+
+# read reference data
+fai_pd = pandas.read_csv(fai, sep='\t', header=None)
+all_chr = sorted(set(fai_pd[0]))
+autosomes = [x for x in all_chr if x.startswith('NC_')]
 
 # map barcodes to names
 # pool_data = pandas.read_csv(pools_csv,
@@ -168,7 +173,46 @@ rule split_target:
                set=['pool', 'drone'])
 
 
-# now i need to get the consensus read for each indiv
+rule indiv_target:
+    input:
+        expand('output/000_tmp/drones/{indiv}.{chr}.fa',
+               indiv=['BB34'],
+               chr=['NC_037640.1'])
+
+# now i need to get the consensus read for each drone
+rule consensus:
+    input:
+        vcf = 'output/000_tmp/drones/{indiv}.vcf.gz',
+        ref = ref
+    output:
+        'output/000_tmp/drones/{indiv}.{chr}.fa'
+    log:
+        'output/logs/consensus.{indiv}.{chr}.log'
+    container:
+        samtools
+    shell:
+        'samtools faidx {input.ref} {wildcards.chr} '
+        '| '
+        'bcftools consensus '
+        '{input.vcf} '
+        '>{output} '
+        '2>{log}'
+
+
+rule indiv_vcf:
+    input:
+        'output/020_filtered-genotypes/drone.renamed.vcf.gz'
+    output:
+        temp('output/000_tmp/drones/{indiv}.vcf')
+    log:
+        'output/logs/indiv_vcf.{indiv}.log'
+    container:
+        samtools
+    shell:
+        'bcftools view -s {wildcards.indiv} '
+        '{input} '
+        '> {output} '
+        '2> {log}'
 
 
 # filter, split and reaheader the vcfs
