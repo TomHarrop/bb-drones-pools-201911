@@ -180,18 +180,40 @@ rule indiv_target:
     input:
         expand('output/000_tmp/drones/{indiv}/{chr}.bam',
                indiv=['BB34'],
+               chr=['NC_037640.1']),
+        expand('output/000_tmp/pools/{indiv}/{chr}.bam',
+               indiv=['BB34'],
                chr=['NC_037640.1'])
+
+# rename the pool reads
+rule extract_pool_bam:
+    input:
+        bam = 'output/010_genotypes/merged.bam'
+    output:
+        'output/000_tmp/pools/{indiv}/{chr}.bam'
+    params:
+        query = lambda wildcards: f'{wildcards.indiv}_pool',
+
+    container:
+        samtools
+    shell:
+        'samtools view -h '
+        '-r {params.query} '
+        '{input.bam} '
+        '{wildcards.chr} '
+        '>{output}'
+
 
 # map
 rule sam_to_bam:
     input:
         'output/000_tmp/drones/{indiv}/{chr}.sam'
     output:
-        'output/000_tmp/drones/{indiv}/{chr}.bam'
+        bam = 'output/000_tmp/drones/{indiv}/{chr}.bam',
     container:
         samtools
     shell:
-        'samtools view -bh {input} > {output}'
+        'samtools view -bh {input} > {output.bam} '
 
 rule map_read:
     input:
