@@ -185,6 +185,35 @@ rule indiv_target:
                indiv=['BB34'],
                chr=['NC_037640.1'])
 
+rule phase_target:
+    input:
+        expand('output/040_phased-indivs/{indiv}/{chr}.vcf',
+               indiv=['BB34'],
+               chr=['NC_037640.1'])
+
+# phase?
+rule phase:
+    input:
+        pool_vcf = 'output/000_tmp/pool/{indiv}/{chr}.vcf.gz',
+        pool_bam = 'output/000_tmp/pools/{indiv}/{chr}.bam',
+        pool_bai = 'output/000_tmp/pools/{indiv}/{chr}.bam.bai',
+        drone_bam = 'output/000_tmp/drones/{indiv}/{chr}.bam',
+        drone_bai = 'output/000_tmp/drones/{indiv}/{chr}.bam.bai'
+    output:
+        'output/040_phased-indivs/{indiv}/{chr}.vcf'
+    log:
+        'output/logs/phase.{indiv}.{chr}.log'
+    container:
+        whatshap
+    shell:
+        'whatshap phase '
+        '-o {output} '
+        '{input.pool_vcf} '
+        '{input.drone_bam} '
+        '{input.pool_bam} '
+        '&>{log}'
+
+
 # rename the pool reads
 rule rename_bam:
     input:
@@ -303,6 +332,22 @@ rule indiv_vcf:
         '> {output} '
         '2> {log}'
 
+rule pool_vcf:
+    input:
+        'output/020_filtered-genotypes/pool.renamed.vcf.gz'
+    output:
+        temp('output/000_tmp/pool/{indiv}/{chr}.vcf')
+    log:
+        'output/logs/pool_vcf.{indiv}.{chr}.log'
+    container:
+        samtools
+    shell:
+        'bcftools view '
+        '-s {wildcards.indiv} '
+        '-r {wildcards.chr} '
+        '{input} '
+        '>{output} '
+        '2>{log}'
 
 # filter, split and reaheader the vcfs
 rule reheader_vcf:
