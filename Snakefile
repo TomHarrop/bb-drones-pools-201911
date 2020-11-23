@@ -186,14 +186,30 @@ rule indiv_target:
                chr=['NC_037640.1'])
 
 # rename the pool reads
+rule rename_bam:
+    input:
+        'output/000_tmp/pools/{indiv}/{chr}.sam'
+    output:
+        'output/000_tmp/pools/{indiv}/{chr}.bam'
+    container:
+        samtools
+    shell:
+        'samtools addreplacerg '
+        '-r "ID:{wildcards.indiv}" '
+        '-r "SM:{wildcards.indiv}" '
+        '-O BAM '
+        '{input} '
+        '> {output}'
+
 rule extract_pool_bam:
     input:
         bam = 'output/010_genotypes/merged.bam'
     output:
-        'output/000_tmp/pools/{indiv}/{chr}.bam'
+        pipe('output/000_tmp/pools/{indiv}/{chr}.sam')
+    log:
+        'output/logs/extract_pool_bam.{indiv}.{chr}.log'
     params:
         query = lambda wildcards: f'{wildcards.indiv}_pool',
-
     container:
         samtools
     shell:
@@ -201,8 +217,8 @@ rule extract_pool_bam:
         '-r {params.query} '
         '{input.bam} '
         '{wildcards.chr} '
-        '>{output}'
-
+        '>>{output} '
+        '2>{log}'
 
 # map
 rule sam_to_bam:
