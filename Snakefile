@@ -90,6 +90,9 @@ wildcard_constraints:
 rule target:
     input:
         'output/020_filtered-genotypes/filtered.vcf.gz',
+        expand('output/040_phased-chrs/{chr}.vcf',
+               chr=autosomes)
+
 
 # rule phase_reads:
 #     input:
@@ -176,38 +179,18 @@ rule target:
 #         ' > {output.vcf} '
 
 
-rule split_target:
-    input:
-        expand('output/020_filtered-genotypes/{set}.renamed.vcf.gz',
-               set=['pool', 'drone'])
-
-rule indiv_target:
-    input:
-        expand('output/000_tmp/drones/{indiv}/{chr}.bam',
-               indiv=['BB34'],
-               chr=['NC_037640.1']),
-        expand('output/000_tmp/pools/{indiv}/{chr}.bam',
-               indiv=['BB34'],
-               chr=['NC_037640.1'])
-
-rule phase_target:
-    input:
-        expand('output/040_phased-indivs/{indiv}/{chr}.vcf',
-               indiv=both_indivs,
-               chr=autosomes)
-
 # phase?
 rule phase:
     input:
-        pool_vcf = 'output/000_tmp/pools/{indiv}/{chr}.vcf.gz',
-        pool_bam = 'output/000_tmp/pools/{indiv}/{chr}.bam',
-        pool_bai = 'output/000_tmp/pools/{indiv}/{chr}.bam.bai',
-        drone_bam = 'output/000_tmp/drones/{indiv}/{chr}.bam',
-        drone_bai = 'output/000_tmp/drones/{indiv}/{chr}.bam.bai'
+        pool_vcf = 'output/035_renamed_vcfs/pools/{chr}.vcf.gz',
+        pool_bam = 'output/037_merged-bams/pools/{chr}.bam',
+        pool_bai = 'output/037_merged-bams/pools/{chr}.bam.bai',
+        drone_bam = 'output/037_merged-bams/drones/{chr}.bam',
+        drone_bai = 'output/037_merged-bams/drones/{chr}.bam.bai'
     output:
-        'output/040_phased-indivs/{indiv}/{chr}.vcf'
+        'output/040_phased-chrs/{chr}.vcf'
     log:
-        'output/logs/phase.{indiv}.{chr}.log'
+        'output/logs/phase.{chr}.log'
     container:
         whatshap
     shell:
@@ -218,6 +201,50 @@ rule phase:
         '{input.pool_bam} '
         '&>{log}'
 
+
+# merge all the indivs into a per-chromsome bam / vcf
+rule merge_bam:
+    input:
+        expand('output/000_tmp/{{type}}/{indiv}/{{chr}}.bam',
+               indiv=both_indivs)
+    output:
+        'output/037_merged-bams/{type}/{chr}.bam'
+    log:
+        'output/logs/merge_bam.{type}.{chr}.log'
+    container:
+        samtools
+    shell:
+        'samtools merge {output} {input} 2>{log}'
+
+
+rule sort_vcf:
+    input:
+        'output/000_tmp/pools/{chr}.vcf'
+    output:
+        temp('output/035_renamed_vcfs/pools/{chr}.vcf')
+    log:
+        'output/logs/sort_vcf.{chr}.log'
+    container:
+        samtools
+    shell:
+        'bcftools sort {input} > {output} 2> {log}'
+
+rule merge_vcf:
+    input:
+        expand('output/000_tmp/pools/{indiv}/{{chr}}.vcf.gz',
+               indiv=both_indivs)
+    output:
+        pipe('output/000_tmp/pools/{chr}.vcf')
+    log:
+        'output/logs/merge_vcf.{chr}.log'
+    container:
+        samtools
+    shell:
+        'bcftools merge '
+        '-O v '
+        '{input} '
+        '>{output} '
+        '2>{log}'
 
 # rename the pool reads
 rule rename_bam:
