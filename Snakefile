@@ -196,9 +196,9 @@ rule phase:
     input:
         pool_vcf = 'output/000_tmp/pool/{indiv}/{chr}.vcf.gz',
         pool_bam = 'output/000_tmp/pools/{indiv}/{chr}.bam',
-        pool_bai = 'output/000_tmp/pools/{indiv}/{chr}.bam.bai',
+        # pool_bai = 'output/000_tmp/pools/{indiv}/{chr}.bam.bai',
         drone_bam = 'output/000_tmp/drones/{indiv}/{chr}.bam',
-        drone_bai = 'output/000_tmp/drones/{indiv}/{chr}.bam.bai'
+        # drone_bai = 'output/000_tmp/drones/{indiv}/{chr}.bam.bai'
     output:
         'output/040_phased-indivs/{indiv}/{chr}.vcf'
     log:
