@@ -53,6 +53,11 @@ all_samples = sorted(set(sample_df.index))
 pool_samples = [x for x in all_samples if x.endswith('_pool')]
 drone_samples = [x for x in all_samples if x.endswith('_drone')]
 
+drone_indivs = [x.split('_')[0] for x in drone_samples]
+pool_indivs = [x.split('_')[0] for x in pool_samples]
+
+both_indivs = [x for x in drone_indivs if x in pool_indivs]
+
 # read reference data
 fai_pd = pandas.read_csv(fai, sep='\t', header=None)
 all_chr = sorted(set(fai_pd[0]))
@@ -188,17 +193,17 @@ rule indiv_target:
 rule phase_target:
     input:
         expand('output/040_phased-indivs/{indiv}/{chr}.vcf',
-               indiv=['BB34'],
-               chr=['NC_037640.1'])
+               indiv=both_indivs,
+               chr=autosomes)
 
 # phase?
 rule phase:
     input:
-        pool_vcf = 'output/000_tmp/pool/{indiv}/{chr}.vcf.gz',
+        pool_vcf = 'output/000_tmp/pools/{indiv}/{chr}.vcf.gz',
         pool_bam = 'output/000_tmp/pools/{indiv}/{chr}.bam',
-        # pool_bai = 'output/000_tmp/pools/{indiv}/{chr}.bam.bai',
+        pool_bai = 'output/000_tmp/pools/{indiv}/{chr}.bam.bai',
         drone_bam = 'output/000_tmp/drones/{indiv}/{chr}.bam',
-        # drone_bai = 'output/000_tmp/drones/{indiv}/{chr}.bam.bai'
+        drone_bai = 'output/000_tmp/drones/{indiv}/{chr}.bam.bai'
     output:
         'output/040_phased-indivs/{indiv}/{chr}.vcf'
     log:
@@ -338,7 +343,7 @@ rule pool_vcf:
     input:
         'output/020_filtered-genotypes/pool.renamed.vcf.gz'
     output:
-        temp('output/000_tmp/pool/{indiv}/{chr}.vcf')
+        temp('output/000_tmp/pools/{indiv}/{chr}.vcf')
     log:
         'output/logs/pool_vcf.{indiv}.{chr}.log'
     container:
