@@ -199,8 +199,10 @@ rule map_read:
         read = 'output/000_tmp/drones/{indiv}/{chr}.renamed.fa'
     output:
         pipe('output/000_tmp/drones/{indiv}/{chr}.sam')
+    log:
+        'output/logs/map_read.{indiv}.{chr}.log'
     params:
-        rg = lambda wildcards: f'@RG\tID:{wildcards.indiv}\tSM:{wildcards.indiv}'
+        rg = lambda wildcards: f'@RG\\tID:{wildcards.indiv}\\tSM:{wildcards.indiv}'
     container:
         minimap
     shell:
@@ -210,6 +212,7 @@ rule map_read:
         '{input.ref} '
         '{input.read} '
         '>>{output} '
+        '@>{log}'
 
 
 # change the name of the read to the name of the drone
