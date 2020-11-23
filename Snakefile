@@ -33,6 +33,7 @@ samtools = 'shub://TomHarrop/align-utils:samtools_1.10'
 vcftools = ('shub://TomHarrop/variant-utils:vcftools_0.1.16'
             '@d64cc5a37951760be575c43024c66e69b2563166')
 whatshap = 'shub://TomHarrop/variant-utils:whatshap_0.18'
+minimap = 'shub://TomHarrop/align-utils:minimap2_2.17r941'
 
 ref = 'data/GCF_003254395.2_Amel_HAv3.1_genomic.fna'
 fai = f'{ref}.fai'
