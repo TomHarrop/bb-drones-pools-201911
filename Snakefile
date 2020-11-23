@@ -183,12 +183,22 @@ rule indiv_target:
                chr=['NC_037640.1'])
 
 # map
+rule sam_to_bam:
+    input:
+        'output/000_tmp/drones/{indiv}/{chr}.sam'
+    output:
+        'output/000_tmp/drones/{indiv}/{chr}.bam'
+    container:
+        samtools
+    shell:
+        'samtools view -bh {input} > {output}'
+
 rule map_read:
     input:
         ref = ref,
         read = 'output/000_tmp/drones/{indiv}/{chr}.renamed.fa'
     output:
-        'output/000_tmp/drones/{indiv}/{chr}.bam'
+        pipe('output/000_tmp/drones/{indiv}/{chr}.sam')
     params:
         rg = lambda wildcards: f'@RG\tID:{wildcards.indiv}\tSM:{wildcards.indiv}'
     container:
@@ -199,9 +209,7 @@ rule map_read:
         '-R {params.rg} '
         '{input.ref} '
         '{input.read} '
-        '| '
-        'samtools view -bh '
-        '>{output} '
+        '>>{output} '
 
 
 # change the name of the read to the name of the drone
