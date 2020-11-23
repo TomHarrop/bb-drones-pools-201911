@@ -212,7 +212,7 @@ rule map_read:
         '{input.ref} '
         '{input.read} '
         '>>{output} '
-        '@>{log}'
+        '2>{log}'
 
 
 # change the name of the read to the name of the drone
