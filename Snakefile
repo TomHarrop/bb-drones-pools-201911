@@ -77,6 +77,9 @@ autosomes = [x for x in all_chr if x.startswith('NC_')]
 # RULES #
 #########
 
+wildcard_constraints:
+    chr = '|'.join(autosomes)
+
 # rules
 rule target:
     input:
@@ -172,12 +175,12 @@ rule split_target:
         expand('output/020_filtered-genotypes/{set}.renamed.vcf.gz',
                set=['pool', 'drone'])
 
-
 rule indiv_target:
     input:
-        expand('output/000_tmp/drones/{indiv}.{chr}.fa',
+        expand('output/000_tmp/drones/{indiv}/{chr}.fa',
                indiv=['BB34'],
                chr=['NC_037640.1'])
+
 
 # now i need to get the consensus read for each drone
 rule consensus:
@@ -185,7 +188,7 @@ rule consensus:
         vcf = 'output/000_tmp/drones/{indiv}.vcf.gz',
         ref = ref
     output:
-        'output/000_tmp/drones/{indiv}.{chr}.fa'
+        'output/000_tmp/drones/{indiv}/{chr}.fa'
     log:
         'output/logs/consensus.{indiv}.{chr}.log'
     container:
@@ -198,12 +201,11 @@ rule consensus:
         '>{output} '
         '2>{log}'
 
-
 rule indiv_vcf:
     input:
         'output/020_filtered-genotypes/drone.renamed.vcf.gz'
     output:
-        temp('output/000_tmp/drones/{indiv}.vcf')
+        'output/000_tmp/drones/{indiv}.vcf'
     log:
         'output/logs/indiv_vcf.{indiv}.log'
     container:
