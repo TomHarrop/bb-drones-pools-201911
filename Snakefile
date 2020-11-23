@@ -180,7 +180,6 @@ rule reheader_vcf:
     shell:
         'bcftools reheader '
         '-s {input.headers} '
-        '-O v '
         '{input.vcf} '
         '2>{log} '
         '| bcftools view >{output} 2>>{log} '
