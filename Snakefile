@@ -167,12 +167,17 @@ rule split_target:
         expand('output/020_filtered-genotypes/{set}.renamed.vcf.gz',
                set=['pool', 'drone'])
 
+
+# now i need to get the consensus read for each indiv
+
+
+# filter, split and reaheader the vcfs
 rule reheader_vcf:
     input:
         vcf = 'output/020_filtered-genotypes/{set}.filtered.vcf.gz',
         headers = 'output/020_filtered-genotypes/{set}.headers.txt'
     output:
-        'output/020_filtered-genotypes/{set}.renamed.vcf'
+        temp('output/020_filtered-genotypes/{set}.renamed.vcf')
     log:
         'output/logs/reheader_vcf.{set}.log'
     container:
@@ -188,7 +193,7 @@ rule header_file:
     input:
         cnv_map
     output:
-        'output/020_filtered-genotypes/{set}.headers.txt'
+        temp('output/020_filtered-genotypes/{set}.headers.txt')
     params:
         query = lambda wildcards: f'_{wildcards.set}'
     container:
@@ -204,7 +209,7 @@ rule split_vcf:
         vcf = 'output/020_filtered-genotypes/filtered.vcf.gz',
         cnv_map = cnv_map,
     output:
-        'output/020_filtered-genotypes/{set}.filtered.vcf'
+        temp('output/020_filtered-genotypes/{set}.filtered.vcf')
     log:
         'output/logs/split_vcf.{set}.log'
     params:
