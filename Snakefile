@@ -258,7 +258,7 @@ rule sam_to_bam:
     container:
         samtools
     shell:
-        'samtools view -bh {input} > {output.bam} '
+        'samtools sort -bh {input} > {output.bam} '
 
 rule map_read:
     input:
