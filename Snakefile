@@ -177,14 +177,33 @@ rule split_target:
 
 rule indiv_target:
     input:
-        expand('output/000_tmp/drones/{indiv}/{chr}.renamed.fa',
+        expand('output/000_tmp/drones/{indiv}/{chr}.bam',
                indiv=['BB34'],
                chr=['NC_037640.1'])
 
+# map
+rule map_read:
+    input:
+        ref = ref,
+        read = 'output/000_tmp/drones/{indiv}/{chr}.renamed.fa'
+    output:
+        'output/000_tmp/drones/{indiv}/{chr}.bam'
+    params:
+        rg = lambda wildcards: f'@RG\tID:{wildcards.indiv}\tSM:{wildcards.indiv}'
+    container:
+        minimap
+    shell:
+        'minimap2 '
+        '-ax asm5 '
+        '-R {params.rg} '
+        '{input.ref} '
+        '{input.read} '
+        '| '
+        'samtools view -bh '
+        '>{output} '
+
+
 # change the name of the read to the name of the drone
-
-
-# get the consensus read for each drone
 rule rename_read:
     input:
         'output/000_tmp/drones/{indiv}/{chr}.fa'
@@ -200,12 +219,13 @@ rule rename_read:
         '{input} '
         '>{output}'
 
+# get the consensus read for each drone
 rule consensus:
     input:
         vcf = 'output/000_tmp/drones/{indiv}.vcf.gz',
         ref = ref
     output:
-        'output/000_tmp/drones/{indiv}/{chr}.fa'
+        temp('output/000_tmp/drones/{indiv}/{chr}.fa')
     log:
         'output/logs/consensus.{indiv}.{chr}.log'
     container:
