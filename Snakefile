@@ -206,7 +206,7 @@ rule map_read:
     shell:
         'minimap2 '
         '-ax asm5 '
-        '-R {params.rg} '
+        '-R \'{params.rg}\' '
         '{input.ref} '
         '{input.read} '
         '>>{output} '
