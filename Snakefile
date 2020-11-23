@@ -177,12 +177,29 @@ rule split_target:
 
 rule indiv_target:
     input:
-        expand('output/000_tmp/drones/{indiv}/{chr}.fa',
+        expand('output/000_tmp/drones/{indiv}/{chr}.renamed.fa',
                indiv=['BB34'],
                chr=['NC_037640.1'])
 
+# change the name of the read to the name of the drone
 
-# now i need to get the consensus read for each drone
+
+# get the consensus read for each drone
+rule rename_read:
+    input:
+        'output/000_tmp/drones/{indiv}/{chr}.fa'
+    output:
+        'output/000_tmp/drones/{indiv}/{chr}.renamed.fa'
+    params:
+        query = lambda wildcards: f's/>{wildcards.chr}/>{wildcards.indiv}/g'
+    container:
+        samtools
+    shell:
+        'sed '
+        '\'{params.query}\' '
+        '{input} '
+        '>{output}'
+
 rule consensus:
     input:
         vcf = 'output/000_tmp/drones/{indiv}.vcf.gz',
