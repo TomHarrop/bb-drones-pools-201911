@@ -62,8 +62,23 @@ wildcard_constraints:
 rule target:
     input:
         'output/020_filtered-genotypes/filtered.vcf.gz',
+        'output/045_phased/autosomes.vcf.gz'
+
+rule concat:
+    input:
         expand('output/040_phased-chrs/{chr}.vcf.gz',
                chr=autosomes)
+    output:
+        'output/045_phased/autosomes.vcf'
+    log:
+        'output/logs/concat.log'
+    container:
+        samtools
+    shell:
+        'bcftools concat '
+        '{input} '
+        '>>{output} '
+        '2> {log}'
 
 rule phase:
     input:
