@@ -57,6 +57,7 @@ drone_indivs = [x.split('_')[0] for x in drone_samples]
 pool_indivs = [x.split('_')[0] for x in pool_samples]
 
 both_indivs = [x for x in drone_indivs if x in pool_indivs]
+both_indivs = ['BB34'] # for testing
 
 # read reference data
 fai_pd = pandas.read_csv(fai, sep='\t', header=None)
@@ -206,7 +207,7 @@ rule phase:
 rule merge_bam:
     input:
         expand('output/000_tmp/{{type}}/{indiv}/{{chr}}.bam',
-               indiv=['BB34'])
+               indiv=both_indivs)
     output:
         'output/037_merged-bams/{type}/{chr}.bam'
     log:
