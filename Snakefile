@@ -188,7 +188,8 @@ rule phase:
         pool_bam = 'output/037_merged-bams/pools/{chr}.bam',
         pool_bai = 'output/037_merged-bams/pools/{chr}.bam.bai',
         drone_bam = 'output/037_merged-bams/drones/{chr}.bam',
-        drone_bai = 'output/037_merged-bams/drones/{chr}.bam.bai'
+        drone_bai = 'output/037_merged-bams/drones/{chr}.bam.bai',
+        ref = ref
     output:
         temp('output/040_phased-chrs/{chr}.vcf')
     log:
@@ -197,6 +198,7 @@ rule phase:
         whatshap
     shell:
         'whatshap phase '
+        '--reference {input.ref} '
         '-o {output} '
         '{input.pool_vcf} '
         '{input.drone_bam} '
