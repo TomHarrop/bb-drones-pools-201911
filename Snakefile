@@ -206,7 +206,7 @@ rule phase:
 rule merge_bam:
     input:
         expand('output/000_tmp/{{type}}/{indiv}/{{chr}}.bam',
-               indiv=both_indivs)
+               indiv=['BB34'])
     output:
         'output/037_merged-bams/{type}/{chr}.bam'
     log:
