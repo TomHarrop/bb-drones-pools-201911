@@ -92,7 +92,7 @@ wildcard_constraints:
 rule target:
     input:
         'output/020_filtered-genotypes/filtered.vcf.gz',
-        expand('output/040_phased-chrs/{chr}.vcf',
+        expand('output/040_phased-chrs/{chr}.vcf.gz',
                chr=autosomes)
 
 
