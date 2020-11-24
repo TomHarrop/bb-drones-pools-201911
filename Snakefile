@@ -244,7 +244,7 @@ rule merge_vcf:
         'bcftools merge '
         '-O v '
         '{input} '
-        '>{output} '
+        '>>{output} '
         '2>{log}'
 
 # rename the pool reads
