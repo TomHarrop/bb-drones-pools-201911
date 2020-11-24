@@ -1,7 +1,4 @@
 # bb-drones-pools-201911
 
-## To try:
+![](graph.svg)
 
-- genotype the pools
-- filter
-- use the filtered VCF as loci to genotype the drones
