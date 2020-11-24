@@ -235,7 +235,7 @@ rule merge_vcf:
         expand('output/000_tmp/pools/{indiv}/{{chr}}.vcf.gz',
                indiv=both_indivs)
     output:
-        pipe('output/000_tmp/pools/{chr}.vcf')
+        temp('output/000_tmp/pools/{chr}.vcf')
     log:
         'output/logs/merge_vcf.{chr}.log'
     container:
