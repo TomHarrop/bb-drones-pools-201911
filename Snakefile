@@ -57,7 +57,7 @@ drone_indivs = [x.split('_')[0] for x in drone_samples]
 pool_indivs = [x.split('_')[0] for x in pool_samples]
 
 both_indivs = [x for x in drone_indivs if x in pool_indivs]
-both_indivs = ['BB34'] # for testing
+both_indivs = ['BB34', 'BB42'] # for testing
 
 # read reference data
 fai_pd = pandas.read_csv(fai, sep='\t', header=None)
