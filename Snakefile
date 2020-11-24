@@ -33,7 +33,7 @@ r = ('shub://TomHarrop/r-containers:r_3.6.1'
 samtools = 'shub://TomHarrop/align-utils:samtools_1.10'
 vcftools = ('shub://TomHarrop/variant-utils:vcftools_0.1.16'
             '@d64cc5a37951760be575c43024c66e69b2563166')
-whatshap = 'shub://TomHarrop/variant-utils:whatshap_0.18'
+whatshap = 'shub://TomHarrop/variant-utils:whatshap_491ec8e'
 minimap = 'shub://TomHarrop/align-utils:minimap2_2.17r941'
 
 ref = 'data/GCF_003254395.2_Amel_HAv3.1_genomic.fna'
@@ -58,7 +58,7 @@ drone_indivs = [x.split('_')[0] for x in drone_samples]
 pool_indivs = [x.split('_')[0] for x in pool_samples]
 
 both_indivs = [x for x in drone_indivs if x in pool_indivs]
-both_indivs = ['BB34', 'BB42'] # for testing
+# both_indivs = ['BB34', 'BB42'] # for testing
 
 # read reference data
 fai_pd = pandas.read_csv(fai, sep='\t', header=None)
@@ -190,7 +190,7 @@ rule phase:
         drone_bam = 'output/037_merged-bams/drones/{chr}.bam',
         drone_bai = 'output/037_merged-bams/drones/{chr}.bam.bai'
     output:
-        'output/040_phased-chrs/{chr}.vcf'
+        temp('output/040_phased-chrs/{chr}.vcf')
     log:
         'output/logs/phase.{chr}.log'
     container:
@@ -257,7 +257,7 @@ rule rename_bam:
     input:
         'output/000_tmp/pools/{indiv}/{chr}.sam'
     output:
-        'output/000_tmp/pools/{indiv}/{chr}.bam'
+        temp('output/000_tmp/pools/{indiv}/{chr}.bam')
     container:
         samtools
     shell:
@@ -292,7 +292,7 @@ rule sam_to_bam:
     input:
         'output/000_tmp/drones/{indiv}/{chr}.sam'
     output:
-        bam = 'output/000_tmp/drones/{indiv}/{chr}.bam',
+        bam = temp('output/000_tmp/drones/{indiv}/{chr}.bam'),
     container:
         samtools
     shell:
@@ -327,7 +327,7 @@ rule rename_read:
     input:
         'output/000_tmp/drones/{indiv}/{chr}.fa'
     output:
-        'output/000_tmp/drones/{indiv}/{chr}.renamed.fa'
+        temp('output/000_tmp/drones/{indiv}/{chr}.renamed.fa')
     params:
         query = lambda wildcards: f's/>{wildcards.chr}/>{wildcards.indiv}/g'
     container:
@@ -361,7 +361,7 @@ rule indiv_vcf:
     input:
         'output/020_filtered-genotypes/drone.renamed.vcf.gz'
     output:
-        'output/000_tmp/drones/{indiv}.vcf'
+        temp('output/000_tmp/drones/{indiv}.vcf')
     log:
         'output/logs/indiv_vcf.{indiv}.log'
     container:
