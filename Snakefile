@@ -2,6 +2,7 @@
 
 import multiprocessing
 import pandas
+import tempfile
 
 
 def get_min_cutoff(wildcards):
@@ -228,7 +229,11 @@ rule sort_vcf:
     container:
         samtools
     shell:
-        'bcftools sort {input} > {output} 2> {log}'
+        'bcftools sort '
+        '--temp-dir ' + tempfile.mkdtemp() + ' '
+        '{input} '
+        '>{output} '
+        '2>{log}'
 
 rule merge_vcf:
     input:
