@@ -13,13 +13,9 @@ bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
 honeybee_genotype_pipeline = (
     'shub://TomHarrop/'
     'honeybee-genotype-pipeline:honeybee_genotype_pipeline_v0.0.6')
-r = ('shub://TomHarrop/r-containers:r_3.6.1'
-     '@e1eb426cd153fd0669bc24508673228d2f25dd76')
-samtools = 'shub://TomHarrop/align-utils:samtools_1.10'
-vcftools = ('shub://TomHarrop/variant-utils:vcftools_0.1.16'
-            '@d64cc5a37951760be575c43024c66e69b2563166')
-whatshap = 'shub://TomHarrop/variant-utils:whatshap_491ec8e'
 minimap = 'shub://TomHarrop/align-utils:minimap2_2.17r941'
+samtools = 'shub://TomHarrop/align-utils:samtools_1.10'
+whatshap = 'shub://TomHarrop/variant-utils:whatshap_491ec8e'
 
 ref = 'data/GCF_003254395.2_Amel_HAv3.1_genomic.fna'
 fai = f'{ref}.fai'
@@ -61,7 +57,6 @@ wildcard_constraints:
 # rules
 rule target:
     input:
-        'output/020_filtered-genotypes/filtered.vcf.gz',
         'output/045_phased/autosomes.vcf.gz'
 
 rule concat:
