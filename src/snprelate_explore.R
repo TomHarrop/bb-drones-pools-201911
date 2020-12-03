@@ -2,16 +2,19 @@ library(SNPRelate)
 library(data.table)
 library(ggplot2)
 
-vcf_file <- "output/020_filtered-genotypes/filtered.vcf.gz"
+vcf_file <- "output/045_phased/autosomes.vcf.gz"
 # vcf_file <- "test/filtered.vcf.gz"
 gds_file <- tempfile(fileext = ".gds")
 
-
-snpgdsVCF2GDS(vcf_file, gds_file, method = "copy.num.of.ref" )
+# method = "biallelic.only": to exact bi-allelic and polymorhpic SNP data
+# (excluding monomorphic variants); method = "copy.num.of.ref": to extract and
+# store dosage (0, 1, 2) of the reference allele for all variant sites,
+# including bi-allelic SNPs, multi-allelic SNPs, indels and structural variants.
+snpgdsVCF2GDS(vcf_file, gds_file, method = "biallelic.only" )
 # snpgdsVCF2GDS(vcf_file, gds_file, method = "biallelic.only" )
 gds_data <- snpgdsOpen(gds_file)
 
-prune for LD and exlude non-autosomes
+#prune for LD and exlude non-autosomes
 pruned <- snpgdsLDpruning(gds_data,
                 autosome.only = FALSE, ld.threshold = 0.2)
 keep_snps <- unlist(pruned[startsWith(names(pruned), "chrNC")])
@@ -54,9 +57,12 @@ ibs_pd[, i2 := factor(i2, levels = indiv_order)]
 #                               from = unique(label_types),
 #                               to = RColorBrewer::brewer.pal(length(unique(label_types)), "Set1"))
 
+ibs_pd[i1 == i2, value := NA]
+
 # plot heatmap of similarity
 gp <- ggplot(ibs_pd, aes(x = i1, y = i2, fill = value)) +
-    theme_grey(base_size = 8) +
+    theme_minimal(base_size = 8) +
+    theme(panel.grid = element_blank()) +
     # theme(axis.text.x = element_text(angle = 90,
     #                                  hjust = 1,
     #                                  vjust = 0.5,
@@ -64,14 +70,15 @@ gp <- ggplot(ibs_pd, aes(x = i1, y = i2, fill = value)) +
     #       axis.text.y = element_text(colour = label_cols)) +
     xlab(NULL) + ylab(NULL) + coord_fixed() +
     scale_fill_viridis_c(guide = guide_colorbar(title = "IBS"),
-                         limits = c(0,1)) +
+                         na.value = NA) +
     geom_raster()
+gp
 
 ggsave("test.pdf",gp, width = 210 - 20, height = 210 - 20, units = "mm")
 
 # what do the GRMs look like?
 grm_res <- snpgdsGRM(gds_data,
-                     # method = "Weighted",
+                     method = "GCTA",
                      autosome.only = FALSE,
                      num.thread = 8,
                      snp.id = keep_snps)
@@ -145,12 +152,15 @@ varprop[, varpct := varprop * 100]
 eig_long <- melt(eig, id.vars = "sample")
 eig_pd <- merge(eig_long, varprop, all.x = TRUE, all.y = FALSE)
 eig_pd[, label := paste0(variable, " (", round(varpct, 1), "%)")]
-eig_pd[, sample_type:= unlist(strsplit(sample, "_"))[[2]], by = sample]
-setorder(eig_pd, sample_type, sample)
-eig_pd[, sample := factor(sample, levels = unique(sample))]
+setorder(eig_pd, sample)
+eig_pd[, sample := factor(sample, levels = indiv_order)]
 
 ggplot(eig_pd[variable %in% paste0("EV", 1:10)],
-       aes(x = sample, y = value, colour = sample_type)) +
+       aes(x = sample, y = value)) +
     facet_wrap(~label) +
+    geom_point()
+
+# same as the PCA
+ggplot(eig, aes(x = EV1, y = EV2)) + 
     geom_point()
 

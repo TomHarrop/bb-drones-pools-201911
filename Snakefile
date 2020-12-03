@@ -16,6 +16,7 @@ honeybee_genotype_pipeline = (
 minimap = 'shub://TomHarrop/align-utils:minimap2_2.17r941'
 samtools = 'shub://TomHarrop/align-utils:samtools_1.10'
 whatshap = 'shub://TomHarrop/variant-utils:whatshap_491ec8e'
+phase_honeybee_vcf = 'shub://TomHarrop/phase-honeybee-vcf:phase_honeybee_vcf_v0.0.2'
 
 ref = 'data/GCF_003254395.2_Amel_HAv3.1_genomic.fna'
 fai = f'{ref}.fai'
@@ -58,6 +59,33 @@ wildcard_constraints:
 rule target:
     input:
         'output/045_phased/autosomes.vcf.gz'
+
+rule aio_phase:
+    input:
+        ref = ref,
+        vcf = 'output/020_filtered-genotypes/filtered.vcf.gz',
+        bam = 'output/010_genotypes/merged.bam',
+        csv = 'data/phasing.csv'
+    output:
+        'output/047_phasing/phased.vcf.gz'
+    log:
+        'output/logs/aio_phase.log'
+    params:
+        outdir = 'output/047_phasing'
+    threads:
+        workflow.cores
+    container:
+        phase_honeybee_vcf
+    shell:
+        'phase_honeybee_vcf '
+        '--threads {threads} '
+        '--ref {input.ref} '
+        '--vcf {input.vcf} '
+        '--bam {input.bam} '
+        '--samples_csv {input.csv} '
+        '--outdir {params.outdir} '
+        '2> {log}'
+
 
 rule concat:
     input:
